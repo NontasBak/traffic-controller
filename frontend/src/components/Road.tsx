@@ -18,7 +18,7 @@ const Road: React.FC<RoadProps> = ({
                 <meshStandardMaterial color="#555555" />
             </mesh>
             <mesh position={[0, 0.051, 0]}>
-                <boxGeometry args={[0.05, 0.01, size[2]]} />
+                <boxGeometry args={[0.05, 0.00001, size[2]]} />
                 <meshStandardMaterial color="white" />
             </mesh>
         </group>
