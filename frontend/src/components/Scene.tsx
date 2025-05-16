@@ -1,80 +1,84 @@
 import { useState, useEffect, Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import * as THREE from "three";
 import Road from "./Road";
 import TrafficLight from "./TrafficLight";
 import type { LightState } from "./TrafficLight";
 import Car from "./Car";
+import { carConfigs } from "../config/carConfigs";
+import { connectWebSocket, disconnectWebSocket } from "../api/websocketService";
 
-const carLength = 1.5;
-const halfCarLength = carLength / 2;
-
-const carConfigs = {
-    // N-S Road Cars (controlled by light1State)
-    redCar: {
-        // Starts South, moves North (+Z)
-        start: new THREE.Vector3(-0.5, 0.25, -15), 
-        stop: new THREE.Vector3(-0.5, 0.25, -2 - halfCarLength), // Stop before Z=-2 line
-        end: new THREE.Vector3(-0.5, 0.25, 15),
-        rotationEulers: [0, 0, 0] as [number, number, number],
-        color: "#e53e3e",
-        axis: "z" as "x" | "z",
-        direction: 1 as 1 | -1,
-    },
-    amberCar: {
-        // Starts North, moves South (-Z)
-        start: new THREE.Vector3(0.5, 0.25, 15),
-        stop: new THREE.Vector3(0.5, 0.25, 2 + halfCarLength), // Stop before Z=2 line
-        end: new THREE.Vector3(0.5, 0.25, -15),
-        rotationEulers: [0, Math.PI, 0] as [number, number, number],
-        color: "#f59e0b",
-        axis: "z" as "x" | "z",
-        direction: -1 as 1 | -1,
-    },
-    // E-W Road Cars (controlled by light2State)
-    blueCar: {
-        // Starts East, moves West (-X)
-        start: new THREE.Vector3(15, 0.25, -0.5),
-        stop: new THREE.Vector3(1 + halfCarLength, 0.25, -0.5), // Stop before X=1 line
-        end: new THREE.Vector3(-15, 0.25, -0.5),
-        rotationEulers: [0, -Math.PI / 2, 0] as [number, number, number],
-        color: "#3b82f6",
-        axis: "x" as "x" | "z",
-        direction: -1 as 1 | -1,
-    },
-    violetCar: {
-        // Starts West, moves East (+X)
-        start: new THREE.Vector3(-15, 0.25, 0.5),
-        stop: new THREE.Vector3(-1 - halfCarLength, 0.25, 0.5), // Stop before X=-1 line
-        end: new THREE.Vector3(15, 0.25, 0.5),
-        rotationEulers: [0, Math.PI / 2, 0] as [number, number, number],
-        color: "#8b5cf6",
-        axis: "x" as "x" | "z",
-        direction: 1 as 1 | -1,
-    },
-};
+const WEBSOCKET_URL = "ws://localhost:8765";
 
 function Scene() {
     const [light1State, setLight1State] = useState<LightState>("red");
     const [light2State, setLight2State] = useState<LightState>("green");
+    const [connectionStatus, setConnectionStatus] =
+        useState<string>("Connecting...");
 
     const roadWidth = 4;
     const mainRoadWidth = roadWidth;
     const secondaryRoadWidth = roadWidth / 2;
-
     const trafficLightOffset = mainRoadWidth / 2 + 0.2;
     const secondaryTrafficLightOffset = secondaryRoadWidth / 2 + 0.2;
+    const carSpeed = 10;
 
     useEffect(() => {
-        const interval = setInterval(() => {
-            setLight1State((prev) => (prev === "red" ? "green" : "red"));
-            setLight2State((prev) => (prev === "red" ? "green" : "red"));
-        }, 5000); // Increased interval for easier observation
-        return () => clearInterval(interval);
-    }, []);
+        const handleOpen = () => {
+            setConnectionStatus("Connected");
+        };
 
-    const carSpeed = 10;
+        const handleMessage = (data: {
+            light1State: string;
+            light2State: string;
+        }) => {
+            // console.log("Data received in Scene component:", data);
+            if (
+                data.light1State &&
+                (data.light1State === "red" || data.light1State === "green")
+            ) {
+                setLight1State(data.light1State);
+            }
+            if (
+                data.light2State &&
+                (data.light2State === "red" || data.light2State === "green")
+            ) {
+                setLight2State(data.light2State);
+            }
+        };
+
+        const handleError = (error: Event) => {
+            console.error("WebSocket connection error in Scene:", error);
+            setConnectionStatus("Error");
+        };
+
+        const handleClose = (event: CloseEvent) => {
+            setConnectionStatus(`Disconnected (Code: ${event.code})`);
+            // Reconnection logic
+            setTimeout(
+                () =>
+                    connectWebSocket(WEBSOCKET_URL, {
+                        onOpen: handleOpen,
+                        onMessage: handleMessage,
+                        onError: handleError,
+                        onClose: handleClose,
+                    }),
+                3000,
+            );
+        };
+
+        setConnectionStatus("Connecting...");
+        connectWebSocket(WEBSOCKET_URL, {
+            onOpen: handleOpen,
+            onMessage: handleMessage,
+            onError: handleError,
+            onClose: handleClose,
+        });
+
+        return () => {
+            disconnectWebSocket();
+        };
+    }, []);
 
     return (
         <>
@@ -102,7 +106,9 @@ function Scene() {
                         <meshStandardMaterial color="#689f38" />
                     </mesh>
                     <mesh>
-                        <boxGeometry args={[secondaryRoadWidth, 0.103, mainRoadWidth]} />
+                        <boxGeometry
+                            args={[secondaryRoadWidth, 0.105, mainRoadWidth]}
+                        />
                         <meshStandardMaterial color="#555555" />
                     </mesh>
                     {/* N-S Road (Secondary) */}
@@ -209,6 +215,18 @@ function Scene() {
                 <h2 className="mb-2 text-lg font-semibold">
                     Intersection Status
                 </h2>
+                <p>
+                    WebSocket:{" "}
+                    <span
+                        className={
+                            connectionStatus === "Connected"
+                                ? "text-green-400"
+                                : "text-yellow-400"
+                        }
+                    >
+                        {connectionStatus}
+                    </span>
+                </p>
                 <p>
                     N/S Lights (Light 1):{" "}
                     <span
