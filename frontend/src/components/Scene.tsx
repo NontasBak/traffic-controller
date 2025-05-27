@@ -21,7 +21,6 @@ function Scene() {
     const secondaryRoadWidth = roadWidth / 2;
     const trafficLightOffset = mainRoadWidth / 2 + 0.2;
     const secondaryTrafficLightOffset = secondaryRoadWidth / 2 + 0.2;
-    const carSpeed = 10;
 
     useEffect(() => {
         const handleOpen = () => {
@@ -85,43 +84,214 @@ function Scene() {
             <Canvas camera={{ position: [0, 15, 20], fov: 50 }} shadows>
                 {" "}
                 <Suspense fallback={null}>
-                    <ambientLight intensity={0.6} />
+                    {/* Sky gradient background */}
+                    <color attach="background" args={["#87CEEB"]} />
+                    <fog attach="fog" args={["#87CEEB", 50, 150]} />
+                    {/* Improved lighting for warm afternoon feel */}
+                    <ambientLight intensity={0.4} color="#ffeaa7" />
                     <directionalLight
                         position={[10, 10, 5]}
-                        intensity={1.5}
+                        intensity={1.2}
+                        color="#fff5b8"
                         castShadow
-                        shadow-mapSize-width={1024}
-                        shadow-mapSize-height={1024}
+                        shadow-mapSize-width={2048}
+                        shadow-mapSize-height={2048}
+                        shadow-camera-far={50}
+                        shadow-camera-left={-25}
+                        shadow-camera-right={25}
+                        shadow-camera-top={25}
+                        shadow-camera-bottom={-25}
+                        shadow-bias={-0.0001}
                     />
                     <directionalLight
                         position={[-10, 10, -5]}
-                        intensity={0.4}
+                        intensity={0.3}
+                        color="#ddd6fe"
                     />
+                    {/* Extended ground plane */}
                     <mesh
                         rotation={[-Math.PI / 2, 0, 0]}
-                        position={[0, -0.05, 0]}
+                        position={[0, 0, 0]}
                         receiveShadow
                     >
-                        <planeGeometry args={[50, 50]} />
-                        <meshStandardMaterial color="#689f38" />
+                        <planeGeometry args={[200, 200]} />
+                        <meshStandardMaterial
+                            color="#7a9b76"
+                            roughness={0.8}
+                            metalness={0.1}
+                        >
+                            <canvasTexture
+                                attach="map"
+                                args={[
+                                    (() => {
+                                        const canvas =
+                                            document.createElement("canvas");
+                                        canvas.width = 256;
+                                        canvas.height = 256;
+                                        const ctx = canvas.getContext("2d");
+                                        if (ctx) {
+                                            // Base grass color
+                                            ctx.fillStyle = "#7a9b76";
+                                            ctx.fillRect(0, 0, 256, 256);
+
+                                            // Add subtle noise pattern
+                                            for (let i = 0; i < 1000; i++) {
+                                                const x = Math.random() * 256;
+                                                const y = Math.random() * 256;
+                                                const shade =
+                                                    Math.random() * 0.3 - 0.15;
+                                                const r = Math.floor(
+                                                    122 + shade * 255,
+                                                );
+                                                const g = Math.floor(
+                                                    155 + shade * 255,
+                                                );
+                                                const b = Math.floor(
+                                                    118 + shade * 255,
+                                                );
+                                                ctx.fillStyle = `rgb(${r},${g},${b})`;
+                                                ctx.fillRect(x, y, 2, 2);
+                                            }
+                                        }
+                                        return canvas;
+                                    })(),
+                                ]}
+                                wrapS={1000}
+                                wrapT={1000}
+                                repeat={[20, 20]}
+                            />
+                        </meshStandardMaterial>
                     </mesh>
-                    <mesh>
+                    {/* Intersection center box */}
+                    <mesh position={[0, 0.001, 0]} receiveShadow>
                         <boxGeometry
-                            args={[secondaryRoadWidth, 0.105, mainRoadWidth]}
+                            args={[secondaryRoadWidth, 0.002, mainRoadWidth]}
                         />
-                        <meshStandardMaterial color="#555555" />
+                        <meshStandardMaterial color="#4a4a4a" roughness={0.9} />
+                    </mesh>
+                    {/* Road markings - Center lines */}
+                    {/* N-S Road center line */}
+                    <mesh position={[0, 0.1005, 0]} receiveShadow>
+                        <boxGeometry args={[0.1, 0.001, 180]} />
+                        <meshStandardMaterial color="#ffffff" />
+                    </mesh>
+                    {/* E-W Road center line */}
+                    <mesh
+                        position={[0, 0.1005, 0]}
+                        rotation={[0, Math.PI / 2, 0]}
+                        receiveShadow
+                    >
+                        <boxGeometry args={[0.1, 0.001, 180]} />
+                        <meshStandardMaterial color="#ffffff" />
+                    </mesh>
+                    {/* Crosswalk stripes */}
+                    {/* North crosswalk */}
+                    {[...Array(8)].map((_, i) => (
+                        <mesh
+                            key={`north-stripe-${i}`}
+                            position={[
+                                -secondaryRoadWidth / 2 +
+                                    (i * secondaryRoadWidth) / 7 +
+                                    secondaryRoadWidth / 14,
+                                0.1005,
+                                trafficLightOffset + 0.5,
+                            ]}
+                            receiveShadow
+                        >
+                            <boxGeometry args={[0.2, 0.001, 0.8]} />
+                            <meshStandardMaterial color="#ffffff" />
+                        </mesh>
+                    ))}
+                    {/* South crosswalk */}
+                    {[...Array(8)].map((_, i) => (
+                        <mesh
+                            key={`south-stripe-${i}`}
+                            position={[
+                                -secondaryRoadWidth / 2 +
+                                    (i * secondaryRoadWidth) / 7 +
+                                    secondaryRoadWidth / 14,
+                                0.1005,
+                                -trafficLightOffset - 0.5,
+                            ]}
+                            receiveShadow
+                        >
+                            <boxGeometry args={[0.2, 0.001, 0.8]} />
+                            <meshStandardMaterial color="#ffffff" />
+                        </mesh>
+                    ))}
+                    {/* East crosswalk */}
+                    {[...Array(12)].map((_, i) => (
+                        <mesh
+                            key={`east-stripe-${i}`}
+                            position={[
+                                trafficLightOffset - 0.3,
+                                0.1005,
+                                -mainRoadWidth / 2 +
+                                    (i * mainRoadWidth) / 11 +
+                                    mainRoadWidth / 22,
+                            ]}
+                            receiveShadow
+                        >
+                            <boxGeometry args={[0.8, 0.001, 0.2]} />
+                            <meshStandardMaterial color="#ffffff" />
+                        </mesh>
+                    ))}
+                    {/* West crosswalk */}
+                    {[...Array(12)].map((_, i) => (
+                        <mesh
+                            key={`west-stripe-${i}`}
+                            position={[
+                                -trafficLightOffset + 0.3,
+                                0.1005,
+                                -mainRoadWidth / 2 +
+                                    (i * mainRoadWidth) / 11 +
+                                    mainRoadWidth / 22,
+                            ]}
+                            receiveShadow
+                        >
+                            <boxGeometry args={[0.8, 0.001, 0.2]} />
+                            <meshStandardMaterial color="#ffffff" />
+                        </mesh>
+                    ))}
+                    {/* Simple curbs */}
+                    {/* N-S Road curbs */}
+                    <mesh
+                        position={[secondaryRoadWidth / 2, 0.05, 0]}
+                        receiveShadow
+                    >
+                        <boxGeometry args={[0.1, 0.1, 180]} />
+                        <meshStandardMaterial color="#cccccc" />
+                    </mesh>
+                    <mesh
+                        position={[-secondaryRoadWidth / 2, 0.05, 0]}
+                        receiveShadow
+                    >
+                        <boxGeometry args={[0.1, 0.1, 180]} />
+                        <meshStandardMaterial color="#cccccc" />
+                    </mesh>
+                    {/* E-W Road curbs */}
+                    <mesh position={[0, 0.05, mainRoadWidth / 2]} receiveShadow>
+                        <boxGeometry args={[180, 0.1, 0.1]} />
+                        <meshStandardMaterial color="#cccccc" />
+                    </mesh>
+                    <mesh
+                        position={[0, 0.05, -mainRoadWidth / 2]}
+                        receiveShadow
+                    >
+                        <boxGeometry args={[180, 0.1, 0.1]} />
+                        <meshStandardMaterial color="#cccccc" />
                     </mesh>
                     {/* N-S Road (Secondary) */}
                     <Road
                         position={[0, 0, 0]}
                         rotation={[0, 0, 0]}
-                        size={[secondaryRoadWidth, 0.1, 35]}
+                        size={[secondaryRoadWidth, 0.1, 180]}
                     />
                     {/* E-W Road (Main) */}
                     <Road
                         position={[0, 0, 0]}
                         rotation={[0, Math.PI / 2, 0]}
-                        size={[mainRoadWidth, 0.1, 35]}
+                        size={[mainRoadWidth, 0.1, 180]}
                     />{" "}
                     <TrafficLight
                         position={[
@@ -170,7 +340,7 @@ function Scene() {
                         rotationEulers={carConfigs.redCar.rotationEulers}
                         color={carConfigs.redCar.color}
                         associatedLightState={light1State}
-                        speed={carSpeed}
+                        speed={carConfigs.redCar.speed}
                         movementAxis={carConfigs.redCar.axis}
                         movementDirection={carConfigs.redCar.direction}
                     />
@@ -181,7 +351,7 @@ function Scene() {
                         rotationEulers={carConfigs.amberCar.rotationEulers}
                         color={carConfigs.amberCar.color}
                         associatedLightState={light1State}
-                        speed={carSpeed}
+                        speed={carConfigs.amberCar.speed}
                         movementAxis={carConfigs.amberCar.axis}
                         movementDirection={carConfigs.amberCar.direction}
                     />
@@ -192,7 +362,7 @@ function Scene() {
                         rotationEulers={carConfigs.blueCar.rotationEulers}
                         color={carConfigs.blueCar.color}
                         associatedLightState={light2State}
-                        speed={carSpeed}
+                        speed={carConfigs.blueCar.speed}
                         movementAxis={carConfigs.blueCar.axis}
                         movementDirection={carConfigs.blueCar.direction}
                     />
@@ -203,9 +373,31 @@ function Scene() {
                         rotationEulers={carConfigs.violetCar.rotationEulers}
                         color={carConfigs.violetCar.color}
                         associatedLightState={light2State}
-                        speed={carSpeed}
+                        speed={carConfigs.violetCar.speed}
                         movementAxis={carConfigs.violetCar.axis}
                         movementDirection={carConfigs.violetCar.direction}
+                    />
+                    <Car
+                        startPositionVec={carConfigs.greenCar.start}
+                        stopPositionVec={carConfigs.greenCar.stop}
+                        endPositionVec={carConfigs.greenCar.end}
+                        rotationEulers={carConfigs.greenCar.rotationEulers}
+                        color={carConfigs.greenCar.color}
+                        associatedLightState={light2State}
+                        speed={carConfigs.greenCar.speed}
+                        movementAxis={carConfigs.greenCar.axis}
+                        movementDirection={carConfigs.greenCar.direction}
+                    />
+                    <Car
+                        startPositionVec={carConfigs.orangeCar.start}
+                        stopPositionVec={carConfigs.orangeCar.stop}
+                        endPositionVec={carConfigs.orangeCar.end}
+                        rotationEulers={carConfigs.orangeCar.rotationEulers}
+                        color={carConfigs.orangeCar.color}
+                        associatedLightState={light2State}
+                        speed={carConfigs.orangeCar.speed}
+                        movementAxis={carConfigs.orangeCar.axis}
+                        movementDirection={carConfigs.orangeCar.direction}
                     />
                     <OrbitControls />
                 </Suspense>

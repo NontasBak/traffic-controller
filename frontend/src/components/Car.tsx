@@ -126,14 +126,35 @@ const Car: React.FC<CarProps> = ({
     });
 
     return (
-        <mesh
+        <group
             ref={carRef}
             position={startPositionVec}
             rotation={rotationEulers}
         >
-            <boxGeometry args={[0.8, 0.5, 1.5]} />
-            <meshStandardMaterial color={color} />
-        </mesh>
+            {/* Car body */}
+            <mesh position={[0, 0.1, 0]}>
+                <boxGeometry args={[0.6, 0.4, 1.2]} />
+                <meshStandardMaterial color={color} />
+            </mesh>
+
+            {/* Wheels */}
+            <mesh position={[-0.3, -0.1, 0.4]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.15, 0.15, 0.1]} />
+                <meshStandardMaterial color="black" />
+            </mesh>
+            <mesh position={[0.3, -0.1, 0.4]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.15, 0.15, 0.1]} />
+                <meshStandardMaterial color="black" />
+            </mesh>
+            <mesh position={[-0.3, -0.1, -0.4]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.15, 0.15, 0.1]} />
+                <meshStandardMaterial color="black" />
+            </mesh>
+            <mesh position={[0.3, -0.1, -0.4]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.15, 0.15, 0.1]} />
+                <meshStandardMaterial color="black" />
+            </mesh>
+        </group>
     );
 };
 
