@@ -8,7 +8,7 @@ from mock_arduino import mock_arduino_data_and_gui
 
 # Ports and baud rate
 
-RECEIVER_PORT = 'COM13'
+RECEIVER_PORT = 'COM8'
 BAUD_RATE = 9600
 
 def serial_relay_and_gui(gui: TrafficLightGUI):
@@ -23,16 +23,17 @@ def serial_relay_and_gui(gui: TrafficLightGUI):
                 line = receiver.readline().decode('utf-8', errors='ignore').strip()
                 if line:
                     print(f"[Receiver] {line}")
-                    gui.root.after(0, gui.update_lights, line)
+                    # gui.root.after(0, gui.update_lights, line)
 
-                    # Prepare the message payload for WebSocket broadcast
-                    light1_status = "gray"
-                    light2_status = "gray"
+                    values = line.split(',')
+                    distance = int(values[0])
+                    weight = int(values[1])
+                    print(distance, weight)
 
-                    if line == "road X":
+                    if distance < 5 and weight > 5:
                         light1_status = "green"
                         light2_status = "red"
-                    elif line == "road Y":
+                    else:
                         light1_status = "red"
                         light2_status = "green"
 

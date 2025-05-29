@@ -119,5 +119,12 @@ void loop() {
         delay(1000);
     }
 
+    char message[10];
+    int distance = ultraSonic.Rangin(CM);
+    int weight = fake_detect_cars()
+    sprintf(message, "%d,%d", distance, weight);
+    Serial.println(message);
+    send_rf_message(message);
+
     delay(100);
 }
