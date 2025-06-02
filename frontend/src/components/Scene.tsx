@@ -7,6 +7,7 @@ import type { LightState } from "./TrafficLight";
 import Car from "./Car";
 import { carConfigs } from "../config/carConfigs";
 import { connectWebSocket, disconnectWebSocket } from "../api/websocketService";
+import NumberFlow from "@number-flow/react";
 
 const WEBSOCKET_URL = "ws://localhost:8765";
 
@@ -15,6 +16,7 @@ function Scene() {
     const [light2State, setLight2State] = useState<LightState>("green");
     const [connectionStatus, setConnectionStatus] =
         useState<string>("Connecting...");
+    const [timer, setTimer] = useState(0);
 
     const roadWidth = 4;
     const mainRoadWidth = roadWidth;
@@ -28,22 +30,34 @@ function Scene() {
         };
 
         const handleMessage = (data: {
-            light1State: string;
-            light2State: string;
+            current_light: number;
+            light_timer_seconds: number;
+            fast_speed: boolean;
         }) => {
-            // console.log("Data received in Scene component:", data);
-            if (
-                data.light1State &&
-                (data.light1State === "red" || data.light1State === "green")
-            ) {
-                setLight1State(data.light1State);
+            // Convert current_light number to light state
+            // 0 = green, 1 = yellow, 2 = red
+            let light1: LightState;
+            switch (data.current_light) {
+                case 0:
+                    light1 = "green";
+                    break;
+                case 1:
+                    light1 = "yellow";
+                    break;
+                case 2:
+                    light1 = "red";
+                    break;
+                default:
+                    light1 = "red";
             }
-            if (
-                data.light2State &&
-                (data.light2State === "red" || data.light2State === "green")
-            ) {
-                setLight2State(data.light2State);
-            }
+
+            // When light1 is green or yellow, light2 should be red
+            // When light1 is red, light2 should be green
+            const light2: LightState = light1 === "red" ? "green" : "red";
+
+            setLight1State(light1);
+            setLight2State(light2);
+            setTimer(data.light_timer_seconds);
         };
 
         const handleError = (error: Event) => {
@@ -425,7 +439,9 @@ function Scene() {
                         className={`font-bold ${
                             light1State === "red"
                                 ? "text-red-400"
-                                : "text-green-400"
+                                : light1State === "yellow"
+                                  ? "text-yellow-400"
+                                  : "text-green-400"
                         }`}
                     >
                         {light1State.toUpperCase()}
@@ -443,6 +459,26 @@ function Scene() {
                         {light2State.toUpperCase()}
                     </span>
                 </p>
+            </div>
+
+            <div className="bg-opacity-75 absolute bottom-4 left-1/2 w-85 -translate-x-1/2 transform rounded-md bg-gray-800 px-8 text-white shadow-lg">
+                <div className="text-center">
+                    <div className="flex items-center justify-center text-8xl font-bold">
+                        <NumberFlow value={timer} />
+                        <span className="ml-2 translate-y-3 text-6xl">s</span>
+                        <span
+                            className={`ml-8 text-4xl font-semibold ${
+                                light1State === "red"
+                                    ? "text-red-400"
+                                    : light1State === "yellow"
+                                      ? "text-yellow-400"
+                                      : "text-green-400"
+                            }`}
+                        >
+                            {light1State.toUpperCase()}
+                        </span>
+                    </div>
+                </div>
             </div>
         </>
     );

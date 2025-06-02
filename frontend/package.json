@@ -11,6 +11,7 @@
         "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,css,scss,md}\""
     },
     "dependencies": {
+        "@number-flow/react": "^0.5.9",
         "@react-three/drei": "^10.0.7",
         "@react-three/fiber": "^9.1.2",
         "@tailwindcss/vite": "^4.1.6",

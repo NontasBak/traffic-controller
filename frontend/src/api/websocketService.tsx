@@ -2,7 +2,11 @@ let socket: WebSocket | null = null;
 
 interface WebSocketCallbacks {
     onOpen?: () => void;
-    onMessage?: (data: { light1State: string; light2State: string }) => void;
+    onMessage?: (data: {
+        current_light: number;
+        light_timer_seconds: number;
+        fast_speed: boolean;
+    }) => void;
     onError?: (error: Event) => void;
     onClose?: (event: CloseEvent) => void;
 }

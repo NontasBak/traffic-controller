@@ -26,20 +26,15 @@ def serial_relay_and_gui(gui: TrafficLightGUI):
                     # gui.root.after(0, gui.update_lights, line)
 
                     values = line.split(',')
-                    distance = int(values[0])
-                    weight = int(values[1])
-                    print(distance, weight)
-
-                    if distance < 5 and weight > 5:
-                        light1_status = "green"
-                        light2_status = "red"
-                    else:
-                        light1_status = "red"
-                        light2_status = "green"
+                    current_light = int(values[0])
+                    light_timer_seconds = int(values[1])
+                    fast_speed = int(values[2])
+                    print(current_light, light_timer_seconds, fast_speed)
 
                     message_payload = {
-                        "light1State": light1_status,
-                        "light2State": light2_status
+                        "current_light": current_light,
+                        "light_timer_seconds": light_timer_seconds,
+                        "fast_speed": fast_speed,
                     }
 
                     websocket_server.schedule_broadcast(message_payload)

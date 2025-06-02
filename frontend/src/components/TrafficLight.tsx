@@ -16,6 +16,7 @@ const TrafficLight: React.FC<TrafficLightProps> = ({
     lightState = "red",
 }) => {
     const redOn = lightState === "red";
+    const yellowOn = lightState === "yellow";
     const greenOn = lightState === "green";
 
     return (
@@ -27,13 +28,11 @@ const TrafficLight: React.FC<TrafficLightProps> = ({
             </mesh>
             {/* Housing */}
             <mesh position={[0, 2.2, 0]}>
-                <boxGeometry args={[0.5, 1, 0.5]} />
+                <boxGeometry args={[0.5, 1.5, 0.5]} />
                 <meshStandardMaterial color="darkgrey" />
             </mesh>
             {/* Red Light */}
-            <mesh position={[0, 2.5, 0.26]}>
-                {" "}
-                {/* Positioned higher */}
+            <mesh position={[0, 2.7, 0.26]}>
                 <sphereGeometry args={[0.2, 16, 16]} />
                 <meshStandardMaterial
                     color={redOn ? "red" : "#500000"}
@@ -41,10 +40,17 @@ const TrafficLight: React.FC<TrafficLightProps> = ({
                     emissiveIntensity={redOn ? 1 : 0}
                 />
             </mesh>
+            {/* Yellow Light */}
+            <mesh position={[0, 2.2, 0.26]}>
+                <sphereGeometry args={[0.2, 16, 16]} />
+                <meshStandardMaterial
+                    color={yellowOn ? "yellow" : "#505000"}
+                    emissive={yellowOn ? "yellow" : "#000000"}
+                    emissiveIntensity={yellowOn ? 1 : 0}
+                />
+            </mesh>
             {/* Green Light */}
-            <mesh position={[0, 1.9, 0.26]}>
-                {" "}
-                {/* Positioned lower */}
+            <mesh position={[0, 1.7, 0.26]}>
                 <sphereGeometry args={[0.2, 16, 16]} />
                 <meshStandardMaterial
                     color={greenOn ? "lime" : "#005000"}
