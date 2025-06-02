@@ -17,6 +17,7 @@ function Scene() {
     const [connectionStatus, setConnectionStatus] =
         useState<string>("Connecting...");
     const [timer, setTimer] = useState(0);
+    const [fastSpeed, setFastSpeed] = useState(false);
 
     const roadWidth = 4;
     const mainRoadWidth = roadWidth;
@@ -58,6 +59,7 @@ function Scene() {
             setLight1State(light1);
             setLight2State(light2);
             setTimer(data.light_timer_seconds);
+            setFastSpeed(data.fast_speed);
         };
 
         const handleError = (error: Event) => {
@@ -461,22 +463,45 @@ function Scene() {
                 </p>
             </div>
 
-            <div className="bg-opacity-75 absolute bottom-4 left-1/2 w-85 -translate-x-1/2 transform rounded-md bg-gray-800 px-8 text-white shadow-lg">
-                <div className="text-center">
-                    <div className="flex items-center justify-center text-8xl font-bold">
-                        <NumberFlow value={timer} />
-                        <span className="ml-2 translate-y-3 text-6xl">s</span>
-                        <span
-                            className={`ml-8 text-4xl font-semibold ${
-                                light1State === "red"
-                                    ? "text-red-400"
-                                    : light1State === "yellow"
-                                      ? "text-yellow-400"
-                                      : "text-green-400"
-                            }`}
-                        >
-                            {light1State.toUpperCase()}
-                        </span>
+            <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 transform gap-4">
+                <div className="bg-opacity-75 flex flex-col items-center justify-center rounded-md bg-gray-800 px-8 py-4 text-white shadow-lg">
+                    <div className="text-center">
+                        <h3 className="mb-4 text-2xl font-semibold">
+                            Speed Radar
+                        </h3>
+                        <div className="text-4xl font-bold">
+                            <span
+                                className={
+                                    fastSpeed
+                                        ? "text-red-400"
+                                        : "text-green-400"
+                                }
+                            >
+                                {fastSpeed ? "Too fast" : "All good"}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-opacity-75 w-85 rounded-md bg-gray-800 px-8 text-white shadow-lg">
+                    <div className="text-center">
+                        <div className="flex items-center justify-center text-8xl font-bold">
+                            <NumberFlow value={timer} />
+                            <span className="ml-2 translate-y-3 text-6xl">
+                                s
+                            </span>
+                            <span
+                                className={`ml-8 text-4xl font-semibold ${
+                                    light1State === "red"
+                                        ? "text-red-400"
+                                        : light1State === "yellow"
+                                          ? "text-yellow-400"
+                                          : "text-green-400"
+                                }`}
+                            >
+                                {light1State.toUpperCase()}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>
