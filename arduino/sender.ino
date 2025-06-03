@@ -85,42 +85,42 @@ void setup() {
     Serial.println("Traffic light RF sender ready");
 }
 
-int val = 0;
-int distance = 0;
+long val = 0;
+long distance = 0;
 
 // Ticks happen every MS_WAIT milliseconds
-int MS_WAIT = 50;
-int counter_light_change = 0; // Measures how many ticks since last light change
-int counter_message_send = 0; // Measures how many ticks since last message sent
+long MS_WAIT = 500;
+long counter_light_change = 0; // Measures how many ticks since last light change
+long counter_message_send = 0; // Measures how many ticks since last message sent
 
-int weight_counter = 0;
-int weight_sum = 0;
+long weight_counter = 0;
+long weight_sum = 0;
 
-int GREEN_SECONDS = 5;
-int YELLOW_SECONDS = 2;
-int RED_SECONDS = 40;
+long GREEN_SECONDS = 5;
+long YELLOW_SECONDS = 2;
+long RED_SECONDS = 40;
 
-int READINGS_PER_SECOND = 1000 / MS_WAIT;
-int TICKS_GREEN = GREEN_SECONDS * 1000 / MS_WAIT;
-int TICKS_YELLOW = YELLOW_SECONDS * 1000 / MS_WAIT;
-int TICKS_RED = RED_SECONDS * 1000 / MS_WAIT;
+long READINGS_PER_SECOND = 1000 / MS_WAIT;
+long TICKS_GREEN = GREEN_SECONDS * 1000 / MS_WAIT;
+long TICKS_YELLOW = YELLOW_SECONDS * 1000 / MS_WAIT;
+long TICKS_RED = RED_SECONDS * 1000 / MS_WAIT;
 
-int THRESHOLD_NO_CARS = 250; // No cars detected
-int THRESHOLD_1_CAR = 500; // One car detected
-int THRESHOLD_2_CARS = 750; // Two cars detected
+long THRESHOLD_NO_CARS = 250; // No cars detected
+long THRESHOLD_1_CAR = 500; // One car detected
+long THRESHOLD_2_CARS = 750; // Two cars detected
 
 // For speed radar
-int counter_car_passing = 0;
-int counter_total_ticks_since_car_passed = 0;
-int THRESHOLD_CAR_PASSING = 10; // Distance in cm to consider a car passing in front of the sensor
-int THRESHOLD_TICKS_FAST_SPEED = 5;
-int THRESHOLD_TICKS_TOTAL_CHECKING = 10; // How many ticks to check
+long counter_car_passing = 0;
+long counter_total_ticks_since_car_passed = 0;
+long THRESHOLD_CAR_PASSING = 10; // Distance in cm to consider a car passing in front of the sensor
+long THRESHOLD_TICKS_FAST_SPEED = 5;
+long THRESHOLD_TICKS_TOTAL_CHECKING = 10; // How many ticks to check
 bool car_passing = false;
 
 bool fast_speed = false;
-int counter_fast_speed = 0;
-int FAST_SPEED_SECONDS = 3; // How many seconds to send a message that a car was going fast
-int FAST_SPEED_TICKS = FAST_SPEED_SECONDS * 1000 / MS_WAIT;
+long counter_fast_speed = 0;
+long FAST_SPEED_SECONDS = 3; // How many seconds to send a message that a car was going fast
+long FAST_SPEED_TICKS = FAST_SPEED_SECONDS * 1000 / MS_WAIT;
 
 
 enum Light {
@@ -131,9 +131,9 @@ enum Light {
 
 enum Cars {
     NO_CARS,
-    ONE_CAR,
-    TWO_CARS,
-    MANY_CARS
+    ONE_CAR = 5,
+    TWO_CARS = 10,
+    MANY_CARS = 15
 };
 
 Light current_light = RED;
@@ -141,7 +141,7 @@ Cars current_cars = NO_CARS;
 
 void loop() {
     val = analogRead(3);
-    Serial.println(val);
+    // Serial.println(val);
     distance = ultrasonic.Ranging(CM);
 
     // Traffic light logic
