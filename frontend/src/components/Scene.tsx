@@ -468,7 +468,7 @@ function Scene() {
             </div>
 
             <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 transform gap-4">
-                <div className="bg-opacity-75 flex flex-col items-center justify-center rounded-md bg-gray-800 px-8 py-4 text-white shadow-lg">
+                {/* <div className="bg-opacity-75 flex flex-col items-center justify-center rounded-md bg-gray-800 px-8 py-4 text-white shadow-lg">
                     <div className="text-center">
                         <h3 className="mb-4 text-2xl font-semibold">
                             Speed Radar
@@ -485,7 +485,7 @@ function Scene() {
                             </span>
                         </div>
                     </div>
-                </div>
+                </div> */}
 
                 <div className="bg-opacity-75 w-85 rounded-md bg-gray-800 px-8 text-white shadow-lg">
                     <div className="text-center">

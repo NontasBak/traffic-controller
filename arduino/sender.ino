@@ -88,14 +88,14 @@ void setup() {
 long val = 0;
 long distance = 0;
 
-const int light_red = 5;
-const int light_yellow = 6;
+const int light_red = 8;
+const int light_yellow = 3;
 const int light_green = 7;
 
 // Duration constants in milliseconds
 const unsigned long GREEN_DURATION = 5000;  // 5 seconds
-const unsigned long YELLOW_DURATION = 2000; // 2 seconds
-const unsigned long RED_DURATION = 40000;   // 40 seconds
+const unsigned long YELLOW_DURATION = 3000; // 2 seconds
+const unsigned long RED_DURATION = 60000;   // 40 seconds
 
 // Message sending interval
 const unsigned long MESSAGE_INTERVAL = 1000; // 1 second
@@ -150,10 +150,16 @@ void loop() {
     switch (current_light) {
         case GREEN:
             if (current_time - light_change_time < GREEN_DURATION) {
+                // Keep GREEN state
                 digitalWrite(light_green, HIGH);
+                digitalWrite(light_yellow, LOW);
+                digitalWrite(light_red, LOW);
             } else {
+                // Transition to YELLOW
                 digitalWrite(light_green, LOW);
                 digitalWrite(light_yellow, HIGH);
+                digitalWrite(light_red, LOW);
+                
                 current_light = YELLOW;
                 light_change_time = current_time;
             }
@@ -161,10 +167,16 @@ void loop() {
             
         case YELLOW:
             if (current_time - light_change_time < YELLOW_DURATION) {
+                // Keep YELLOW state
+                digitalWrite(light_green, LOW);
                 digitalWrite(light_yellow, HIGH);
+                digitalWrite(light_red, LOW);
             } else {
+                // Transition to RED
+                digitalWrite(light_green, LOW);
                 digitalWrite(light_yellow, LOW);
                 digitalWrite(light_red, HIGH);
+                
                 current_light = RED;
                 light_change_time = current_time;
                 red_light_extension = 0; // Reset extension when entering red light
@@ -211,10 +223,18 @@ void loop() {
             unsigned long adjusted_duration = RED_DURATION > red_light_extension ? 
                                               RED_DURATION - red_light_extension : 0;
             
+            // Keep RED state
+            digitalWrite(light_green, LOW);
+            digitalWrite(light_yellow, LOW);
+            digitalWrite(light_red, HIGH);
+            
             // Check if red light duration has passed (by time elapsed or by complete reduction)
             if (time_elapsed >= adjusted_duration || adjusted_duration == 0) {
-                digitalWrite(light_red, LOW);
+                // Transition to GREEN
                 digitalWrite(light_green, HIGH);
+                digitalWrite(light_yellow, LOW);
+                digitalWrite(light_red, LOW);
+                
                 current_light = GREEN;
                 light_change_time = current_time;
             }
