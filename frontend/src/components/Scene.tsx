@@ -96,8 +96,12 @@ function Scene() {
     }, []);
 
     return (
-        <>
-            <Canvas camera={{ position: [0, 15, 20], fov: 50 }} shadows>
+        <div className="fixed inset-0 w-screen h-screen overflow-hidden">
+            <Canvas
+                style={{ width: "100%", height: "100%" }}
+                camera={{ position: [0, 15, 20], fov: 50 }}
+                shadows
+            >
                 {" "}
                 <Suspense fallback={null}>
                     {/* Sky gradient background */}
@@ -505,7 +509,7 @@ function Scene() {
                     </div>
                 </div>
             </div>
-        </>
+        </div>
     );
 }
 
