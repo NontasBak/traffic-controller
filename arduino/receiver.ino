@@ -39,8 +39,8 @@ void loop() {
   {
     buf[RF22_ROUTER_MAX_MESSAGE_LEN - 1] = '\0';
     memcpy(incoming, buf, RF22_ROUTER_MAX_MESSAGE_LEN);
-    Serial.print("got request from : ");
-    Serial.println(from, DEC);
+    // Serial.print("got request from : ");
+    // Serial.println(from, DEC);
     received_value = atoi((char*)incoming);
     Serial.println(incoming);
  //   delay(1000);
