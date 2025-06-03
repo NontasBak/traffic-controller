@@ -8,7 +8,7 @@ from mock_arduino import mock_arduino_data_and_gui
 
 # Ports and baud rate
 
-RECEIVER_PORT = 'COM8'
+RECEIVER_PORT = 'COM9'
 BAUD_RATE = 9600
 
 def serial_relay_and_gui(gui: TrafficLightGUI):

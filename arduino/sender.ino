@@ -92,40 +92,32 @@ const int light_red = 5;
 const int light_yellow = 6;
 const int light_green = 7;
 
-// Ticks happen every MS_WAIT milliseconds
-long MS_WAIT = 500;
-long counter_light_change = 0; // Measures how many ticks since last light change
-long counter_message_send = 0; // Measures how many ticks since last message sent
+// Duration constants in milliseconds
+const unsigned long GREEN_DURATION = 5000;  // 5 seconds
+const unsigned long YELLOW_DURATION = 2000; // 2 seconds
+const unsigned long RED_DURATION = 40000;   // 40 seconds
 
-long weight_counter = 0;
-long weight_sum = 0;
+// Message sending interval
+const unsigned long MESSAGE_INTERVAL = 1000; // 1 second
 
-long GREEN_SECONDS = 5;
-long YELLOW_SECONDS = 2;
-long RED_SECONDS = 40;
-
-long READINGS_PER_SECOND = 1000 / MS_WAIT;
-long TICKS_GREEN = GREEN_SECONDS * 1000 / MS_WAIT;
-long TICKS_YELLOW = YELLOW_SECONDS * 1000 / MS_WAIT;
-long TICKS_RED = RED_SECONDS * 1000 / MS_WAIT;
-
-long THRESHOLD_NO_CARS = 15; // No cars detected
-long THRESHOLD_1_CAR = 200; // One car detected
-long THRESHOLD_2_CARS = 400; // Two cars detected
+// Thresholds for car detection
+const long THRESHOLD_NO_CARS = 15;  // No cars detected
+const long THRESHOLD_1_CAR = 200;   // One car detected
+const long THRESHOLD_2_CARS = 400;  // Two cars detected
 
 // For speed radar
-long counter_car_passing = 0;
-long counter_total_ticks_since_car_passed = 0;
-long THRESHOLD_CAR_PASSING = 10; // Distance in cm to consider a car passing in front of the sensor
-long THRESHOLD_TICKS_FAST_SPEED = 5;
-long THRESHOLD_TICKS_TOTAL_CHECKING = 10; // How many ticks to check
+const long THRESHOLD_CAR_PASSING = 10; // Distance in cm to consider a car passing
+const unsigned long FAST_SPEED_DURATION = 3000; // How long to report a car was speeding (3 seconds)
 bool car_passing = false;
-
 bool fast_speed = false;
-long counter_fast_speed = 0;
-long FAST_SPEED_SECONDS = 3; // How many seconds to send a message that a car was going fast
-long FAST_SPEED_TICKS = FAST_SPEED_SECONDS * 1000 / MS_WAIT;
+unsigned long fast_speed_start_time = 0;
 
+// Speed detection parameters
+const unsigned long SPEED_CHECK_DURATION = 500; // Time window to check car speed (500ms)
+const unsigned long FAST_SPEED_THRESHOLD = 250; // Time threshold for fast car detection (ms)
+unsigned long car_passing_start_time = 0;
+unsigned long car_passing_duration = 0;
+bool speed_check_active = false;
 
 enum Light {
     GREEN,
@@ -143,49 +135,51 @@ enum Cars {
 Light current_light = RED;
 Cars current_cars = NO_CARS;
 
+// Timing variables
+unsigned long light_change_time = 0;    // When the current light state started
+unsigned long last_message_time = 0;    // When the last message was sent
+unsigned long last_weight_check_time = 0; // When we last checked the weight
+unsigned long red_light_extension = 0;  // Additional time for RED light based on car presence
+
 void loop() {
+    unsigned long current_time = millis();
     val = analogRead(3);
-    // Serial.println(val);
     distance = ultrasonic.Ranging(CM);
 
     // Traffic light logic
     switch (current_light) {
         case GREEN:
-            if(counter_light_change < TICKS_GREEN) {
-                counter_light_change++;
+            if (current_time - light_change_time < GREEN_DURATION) {
                 digitalWrite(light_green, HIGH);
             } else {
                 digitalWrite(light_green, LOW);
                 digitalWrite(light_yellow, HIGH);
                 current_light = YELLOW;
-                counter_light_change = 0;
+                light_change_time = current_time;
             }
             break;
+            
         case YELLOW:
-            if(counter_light_change < TICKS_YELLOW) {
-                counter_light_change++;
+            if (current_time - light_change_time < YELLOW_DURATION) {
                 digitalWrite(light_yellow, HIGH);
             } else {
                 digitalWrite(light_yellow, LOW);
                 digitalWrite(light_red, HIGH);
                 current_light = RED;
-                counter_light_change = 0;
+                light_change_time = current_time;
+                red_light_extension = 0; // Reset extension when entering red light
             }
             break;
+            
         case RED:
-            if (weight_counter < READINGS_PER_SECOND && counter_light_change < TICKS_RED) {
-                digitalWrite(light_red, HIGH);
-                weight_counter++;
-                weight_sum += val;
-            } else if (weight_counter >= READINGS_PER_SECOND) {
-                int weight_average = weight_sum / READINGS_PER_SECOND;
-
+            // Check weight every second during red light
+            if (current_time - last_weight_check_time >= 1000) {
+                int weight_average = val; // For simplicity, using direct value instead of averaging
+                
                 Serial.print("Weight average: ");
                 Serial.println(weight_average);
-
-                weight_counter = 0;
-                weight_sum = 0;
                 
+                // Update car count based on weight
                 if (weight_average < THRESHOLD_NO_CARS) {
                     current_cars = NO_CARS;
                 } else if (weight_average < THRESHOLD_1_CAR) {
@@ -195,15 +189,37 @@ void loop() {
                 } else {
                     current_cars = MANY_CARS;
                 }
-
-                counter_light_change += READINGS_PER_SECOND * (current_cars + NO_CARS);
-            } else {
+                
+                // When cars are detected, reduce the red light duration
+                // instead of extending it (subtract time instead of adding)
+                if (current_cars > NO_CARS) {
+                    // Only reduce time if there's time left to reduce
+                    unsigned long time_elapsed = current_time - light_change_time;
+                    unsigned long remaining_time = RED_DURATION > time_elapsed ? 
+                                                   RED_DURATION - time_elapsed : 0;
+                    
+                    // Calculate how much to reduce (based on car count)
+                    unsigned long reduction = min(remaining_time, (unsigned long)current_cars * 1000);
+                    red_light_extension += reduction;
+                }
+                
+                last_weight_check_time = current_time;
+            }
+            
+            // Calculate the time remaining for RED light
+            unsigned long time_elapsed = current_time - light_change_time;
+            unsigned long adjusted_duration = RED_DURATION > red_light_extension ? 
+                                              RED_DURATION - red_light_extension : 0;
+            
+            // Check if red light duration has passed (by time elapsed or by complete reduction)
+            if (time_elapsed >= adjusted_duration || adjusted_duration == 0) {
                 digitalWrite(light_red, LOW);
                 digitalWrite(light_green, HIGH);
                 current_light = GREEN;
-                counter_light_change = 0;
+                light_change_time = current_time;
             }
             break;
+            
         default:
             break;
     }
@@ -212,58 +228,59 @@ void loop() {
     int light_timer_seconds = 0;
     switch (current_light) {
         case GREEN:
-            light_timer_seconds = max(0, (TICKS_GREEN - counter_light_change) * MS_WAIT / 1000);
+            light_timer_seconds = (GREEN_DURATION - (current_time - light_change_time)) / 1000;
             break;
         case YELLOW:
-            light_timer_seconds = max(0, (TICKS_YELLOW - counter_light_change) * MS_WAIT / 1000);
+            light_timer_seconds = (YELLOW_DURATION - (current_time - light_change_time)) / 1000;
             break;
         case RED:
-            light_timer_seconds = max(0, (TICKS_RED - counter_light_change) * MS_WAIT / 1000);
+            // Calculate red light time by subtracting the extension
+            light_timer_seconds = (RED_DURATION - red_light_extension - (current_time - light_change_time)) / 1000;
             break;
     }
+    light_timer_seconds = max(0, light_timer_seconds);
 
     // Speed radar logic
     car_passing = distance < THRESHOLD_CAR_PASSING;
-    if (!fast_speed) {
-        if (!counter_total_ticks_since_car_passed) {
-            // Start tick timer if car passes
-            if (car_passing) {
-                counter_total_ticks_since_car_passed++;
-            }
-        } else if (counter_total_ticks_since_car_passed < THRESHOLD_TICKS_TOTAL_CHECKING) {
-            counter_total_ticks_since_car_passed++;
-            
-            // Continue checking if car is passing
-            if (car_passing) {
-                counter_car_passing++;
-            }
-        } else {
-            counter_total_ticks_since_car_passed = 0;
     
-            // Evaluate if car was going fast
-            if (counter_car_passing < THRESHOLD_TICKS_FAST_SPEED) {
+    // Start timing when car first passes
+    if (car_passing && !speed_check_active) {
+        car_passing_start_time = current_time;
+        speed_check_active = true;
+    }
+    
+    // Check if car passed quickly
+    if (speed_check_active) {
+        if (!car_passing) { // Car is no longer detected
+            car_passing_duration = current_time - car_passing_start_time;
+            
+            // If car passed faster than threshold, mark as speeding
+            if (car_passing_duration < FAST_SPEED_THRESHOLD) {
                 fast_speed = true;
-            } else {
-                fast_speed = false;
+                fast_speed_start_time = current_time;
             }
+            
+            speed_check_active = false;
+        } else if (current_time - car_passing_start_time > SPEED_CHECK_DURATION) {
+            // Timeout for speed check
+            speed_check_active = false;
         }
-    } else if (counter_fast_speed < FAST_SPEED_TICKS) {
-        counter_fast_speed++;
-    } else {
+    }
+    
+    // Reset fast_speed flag after duration expires
+    if (fast_speed && current_time - fast_speed_start_time >= FAST_SPEED_DURATION) {
         fast_speed = false;
-        counter_fast_speed = 0;
     }
 
-    // Send message every second
-    if (counter_message_send >= READINGS_PER_SECOND) {
+    // Send message every second, regardless of other operations
+    if (current_time - last_message_time >= MESSAGE_INTERVAL) {
         char message[20];
         sprintf(message, "%d,%d,%d", current_light, light_timer_seconds, fast_speed);
         Serial.println(message);
         send_rf_message(message);
-
-        counter_message_send = 0;
+        
+        last_message_time = current_time;
     }
 
-    delay(MS_WAIT);
-    counter_message_send++;
+    delay(10); // Short delay for stability
 }
