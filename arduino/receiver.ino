@@ -1,7 +1,7 @@
 #include <RF22.h>
 #include <RF22Router.h>
 
-#define MY_ADDRESS 5
+#define MY_ADDRESS 420
 #define NODE_ADDRESS_1 12
 #define NODE_ADDRESS_2 13
 #define NODE_ADDRESS_3 14
@@ -24,7 +24,6 @@ void setup() {
   rf22.addRouteTo(NODE_ADDRESS_1, NODE_ADDRESS_1);
   rf22.addRouteTo(NODE_ADDRESS_2, NODE_ADDRESS_2);
   rf22.addRouteTo(NODE_ADDRESS_3, NODE_ADDRESS_3);
-
 }
 
 void loop() {

@@ -88,6 +88,10 @@ void setup() {
 long val = 0;
 long distance = 0;
 
+const int light_red = 5;
+const int light_yellow = 6;
+const int light_green = 7;
+
 // Ticks happen every MS_WAIT milliseconds
 long MS_WAIT = 500;
 long counter_light_change = 0; // Measures how many ticks since last light change
@@ -105,9 +109,9 @@ long TICKS_GREEN = GREEN_SECONDS * 1000 / MS_WAIT;
 long TICKS_YELLOW = YELLOW_SECONDS * 1000 / MS_WAIT;
 long TICKS_RED = RED_SECONDS * 1000 / MS_WAIT;
 
-long THRESHOLD_NO_CARS = 250; // No cars detected
-long THRESHOLD_1_CAR = 500; // One car detected
-long THRESHOLD_2_CARS = 750; // Two cars detected
+long THRESHOLD_NO_CARS = 15; // No cars detected
+long THRESHOLD_1_CAR = 200; // One car detected
+long THRESHOLD_2_CARS = 400; // Two cars detected
 
 // For speed radar
 long counter_car_passing = 0;
@@ -130,7 +134,7 @@ enum Light {
 };
 
 enum Cars {
-    NO_CARS,
+    NO_CARS = 1,
     ONE_CAR = 5,
     TWO_CARS = 10,
     MANY_CARS = 15
@@ -149,7 +153,10 @@ void loop() {
         case GREEN:
             if(counter_light_change < TICKS_GREEN) {
                 counter_light_change++;
+                digitalWrite(light_green, HIGH);
             } else {
+                digitalWrite(light_green, LOW);
+                digitalWrite(light_yellow, HIGH);
                 current_light = YELLOW;
                 counter_light_change = 0;
             }
@@ -157,13 +164,17 @@ void loop() {
         case YELLOW:
             if(counter_light_change < TICKS_YELLOW) {
                 counter_light_change++;
+                digitalWrite(light_yellow, HIGH);
             } else {
+                digitalWrite(light_yellow, LOW);
+                digitalWrite(light_red, HIGH);
                 current_light = RED;
                 counter_light_change = 0;
             }
             break;
         case RED:
             if (weight_counter < READINGS_PER_SECOND && counter_light_change < TICKS_RED) {
+                digitalWrite(light_red, HIGH);
                 weight_counter++;
                 weight_sum += val;
             } else if (weight_counter >= READINGS_PER_SECOND) {
@@ -185,8 +196,10 @@ void loop() {
                     current_cars = MANY_CARS;
                 }
 
-                counter_light_change += READINGS_PER_SECOND * current_cars;
+                counter_light_change += READINGS_PER_SECOND * (current_cars + NO_CARS);
             } else {
+                digitalWrite(light_red, LOW);
+                digitalWrite(light_green, HIGH);
                 current_light = GREEN;
                 counter_light_change = 0;
             }
@@ -199,13 +212,13 @@ void loop() {
     int light_timer_seconds = 0;
     switch (current_light) {
         case GREEN:
-            light_timer_seconds = (TICKS_GREEN - counter_light_change) * MS_WAIT / 1000;
+            light_timer_seconds = max(0, (TICKS_GREEN - counter_light_change) * MS_WAIT / 1000);
             break;
         case YELLOW:
-            light_timer_seconds = (TICKS_YELLOW - counter_light_change) * MS_WAIT / 1000;
+            light_timer_seconds = max(0, (TICKS_YELLOW - counter_light_change) * MS_WAIT / 1000);
             break;
         case RED:
-            light_timer_seconds = (TICKS_RED - counter_light_change) * MS_WAIT / 1000;
+            light_timer_seconds = max(0, (TICKS_RED - counter_light_change) * MS_WAIT / 1000);
             break;
     }
 
@@ -228,7 +241,7 @@ void loop() {
             counter_total_ticks_since_car_passed = 0;
     
             // Evaluate if car was going fast
-            if (1 < counter_car_passing && counter_car_passing < THRESHOLD_TICKS_FAST_SPEED) {
+            if (counter_car_passing < THRESHOLD_TICKS_FAST_SPEED) {
                 fast_speed = true;
             } else {
                 fast_speed = false;
