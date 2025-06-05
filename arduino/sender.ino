@@ -11,10 +11,9 @@ RF22Router rf22(MY_ADDRESS);
 Ultrasonic ultrasonic(A0,A1);
 
 // Traffic light pins
-const int green_x = 8;
-const int green_y = 7;
-const int red_x = 12;
-const int red_y = 13;
+const int light_red = 8;
+const int light_yellow = 3;
+const int light_green = 7;
 
 const unsigned long baseDelay = 5000;
 const unsigned long fastDelay = 3000;
@@ -22,23 +21,6 @@ const unsigned long fastDelay = 3000;
 long randNumber;
 bool successful_packet = false;
 int max_delay = 3000;
-
-void set_green(char road) {
-    if (road == 'x') {
-        digitalWrite(green_x, HIGH);
-        digitalWrite(red_x, LOW);
-        digitalWrite(green_y, LOW);
-        digitalWrite(red_y, HIGH);
-
-    } else if (road == 'y') {
-        digitalWrite(green_y, HIGH);
-        digitalWrite(red_y, LOW);
-        digitalWrite(green_x, LOW);
-        digitalWrite(red_x, HIGH);
-    }
-}
-
-bool detect_cars() { return random(0, 10) > 7; }
 
 void send_rf_message(const char* message) {
     uint8_t data_send[RF22_ROUTER_MAX_MESSAGE_LEN];
@@ -66,14 +48,11 @@ void setup() {
     pinMode(3, OUTPUT);
 
     // Set traffic light pins
-    pinMode(green_x, OUTPUT);
-    pinMode(green_y, OUTPUT);
-    pinMode(red_x, OUTPUT);
-    pinMode(red_y, OUTPUT);
+    pinMode(light_red, OUTPUT);
+    pinMode(light_yellow, OUTPUT);
+    pinMode(light_green, OUTPUT);
 
-    set_green('x');
     // Init RFM22 module
-
     if (!rf22.init()) Serial.println("RF22 init failed");
     if (!rf22.setFrequency(431.0)) Serial.println("setFrequency Fail");
 
@@ -87,10 +66,6 @@ void setup() {
 
 long val = 0;
 long distance = 0;
-
-const int light_red = 8;
-const int light_yellow = 3;
-const int light_green = 7;
 
 // Duration constants in milliseconds
 const unsigned long GREEN_DURATION = 5000;  // 5 seconds
@@ -125,6 +100,7 @@ enum Light {
     RED
 };
 
+// The weights here show how much timer decrease should happen on each threshold
 enum Cars {
     NO_CARS = 1,
     ONE_CAR = 5,
@@ -139,7 +115,7 @@ Cars current_cars = NO_CARS;
 unsigned long light_change_time = 0;    // When the current light state started
 unsigned long last_message_time = 0;    // When the last message was sent
 unsigned long last_weight_check_time = 0; // When we last checked the weight
-unsigned long red_light_extension = 0;  // Additional time for RED light based on car presence
+unsigned long red_light_decrease = 0;  // Time decrease for RED light based on car presence
 
 void loop() {
     unsigned long current_time = millis();
@@ -179,40 +155,36 @@ void loop() {
                 
                 current_light = RED;
                 light_change_time = current_time;
-                red_light_extension = 0; // Reset extension when entering red light
+                red_light_decrease = 0; // Reset extension when entering red light
             }
             break;
             
         case RED:
             // Check weight every second during red light
             if (current_time - last_weight_check_time >= 1000) {
-                int weight_average = val; // For simplicity, using direct value instead of averaging
-                
-                Serial.print("Weight average: ");
-                Serial.println(weight_average);
+                Serial.print("Weight: ");
+                Serial.println(val);
                 
                 // Update car count based on weight
-                if (weight_average < THRESHOLD_NO_CARS) {
+                if (val < THRESHOLD_NO_CARS) {
                     current_cars = NO_CARS;
-                } else if (weight_average < THRESHOLD_1_CAR) {
+                } else if (val < THRESHOLD_1_CAR) {
                     current_cars = ONE_CAR;
-                } else if (weight_average < THRESHOLD_2_CARS) {
+                } else if (val < THRESHOLD_2_CARS) {
                     current_cars = TWO_CARS;
                 } else {
                     current_cars = MANY_CARS;
                 }
                 
                 // When cars are detected, reduce the red light duration
-                // instead of extending it (subtract time instead of adding)
                 if (current_cars > NO_CARS) {
-                    // Only reduce time if there's time left to reduce
                     unsigned long time_elapsed = current_time - light_change_time;
                     unsigned long remaining_time = RED_DURATION > time_elapsed ? 
                                                    RED_DURATION - time_elapsed : 0;
                     
                     // Calculate how much to reduce (based on car count)
                     unsigned long reduction = min(remaining_time, (unsigned long)current_cars * 1000);
-                    red_light_extension += reduction;
+                    red_light_decrease += reduction;
                 }
                 
                 last_weight_check_time = current_time;
@@ -220,15 +192,15 @@ void loop() {
             
             // Calculate the time remaining for RED light
             unsigned long time_elapsed = current_time - light_change_time;
-            unsigned long adjusted_duration = RED_DURATION > red_light_extension ? 
-                                              RED_DURATION - red_light_extension : 0;
+            unsigned long adjusted_duration = RED_DURATION > red_light_decrease ? 
+                                              RED_DURATION - red_light_decrease : 0;
             
             // Keep RED state
             digitalWrite(light_green, LOW);
             digitalWrite(light_yellow, LOW);
             digitalWrite(light_red, HIGH);
             
-            // Check if red light duration has passed (by time elapsed or by complete reduction)
+            // Check if red light duration has passed
             if (time_elapsed >= adjusted_duration || adjusted_duration == 0) {
                 // Transition to GREEN
                 digitalWrite(light_green, HIGH);
@@ -255,7 +227,7 @@ void loop() {
             break;
         case RED:
             // Calculate red light time by subtracting the extension
-            light_timer_seconds = (RED_DURATION - red_light_extension - (current_time - light_change_time)) / 1000;
+            light_timer_seconds = (RED_DURATION - red_light_decrease - (current_time - light_change_time)) / 1000;
             break;
     }
     light_timer_seconds = max(0, light_timer_seconds);
