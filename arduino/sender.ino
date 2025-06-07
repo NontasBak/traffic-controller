@@ -3,7 +3,7 @@
 #include <SPI.h>
 #include "Ultrasonic.h"
 
-#define MY_ADDRESS 1488
+#define MY_ADDRESS 9876
 
 #define DESTINATION_ADDRESS 420
 
@@ -69,8 +69,8 @@ long distance = 0;
 
 // Duration constants in milliseconds
 const unsigned long GREEN_DURATION = 5000;  // 5 seconds
-const unsigned long YELLOW_DURATION = 3000; // 2 seconds
-const unsigned long RED_DURATION = 60000;   // 40 seconds
+const unsigned long YELLOW_DURATION = 3000; // 3 seconds
+const unsigned long RED_DURATION = 60000;   // 60 seconds
 
 // Message sending interval
 const unsigned long MESSAGE_INTERVAL = 1000; // 1 second

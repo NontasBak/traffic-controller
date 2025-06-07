@@ -11,7 +11,7 @@ from mock_arduino import mock_arduino_data_and_gui
 RECEIVER_PORT = 'COM9'
 BAUD_RATE = 9600
 
-def serial_relay_and_gui(gui: TrafficLightGUI):
+def serial_relay_and_gui():
     try:
         receiver = serial.Serial(RECEIVER_PORT, BAUD_RATE, timeout=1)
         time.sleep(2)
@@ -48,18 +48,20 @@ def serial_relay_and_gui(gui: TrafficLightGUI):
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
-    gui = TrafficLightGUI(root)
-
     websocket_thread = threading.Thread(target=websocket_server.run_server_in_thread, daemon=True)
     websocket_thread.start()
 
     # Only for testing purposes
-    # mock_thread = threading.Thread(target=mock_arduino_data_and_gui, args=(gui,), daemon=True)
-    # mock_thread.start()
+    mock_thread = threading.Thread(target=mock_arduino_data_and_gui, daemon=True)
+    mock_thread.start()
 
     # Actual implementation
-    serial_thread = threading.Thread(target=serial_relay_and_gui, args=(gui,), daemon=True)
-    serial_thread.start()
+    # serial_thread = threading.Thread(target=serial_relay_and_gui, daemon=True)
+    # serial_thread.start()
 
-    root.mainloop()
+    # Keep the main thread alive
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Shutting down...")

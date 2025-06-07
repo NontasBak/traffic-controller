@@ -3,7 +3,7 @@ import websocket_server
 import time
 
 # Only for testing purposes, do not use in production
-def mock_arduino_data_and_gui(gui: TrafficLightGUI):
+def mock_arduino_data_and_gui():
     print("[MOCK] Starting mock Arduino data sender...\n")
     possible_messages = ["road X", "road Y"]
     current_message_index = 0
@@ -14,7 +14,7 @@ def mock_arduino_data_and_gui(gui: TrafficLightGUI):
             current_message_index = (current_message_index + 1) % len(possible_messages) # Cycle through messages
             
             print(f"[MOCK] Generated: {line}")
-            gui.root.after(0, gui.update_lights, line)
+            # gui.root.after(0, gui.update_lights, line)
 
             # Prepare message for WebSocket clients
             light1_status = "gray"
